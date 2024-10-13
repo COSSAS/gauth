@@ -11,11 +11,11 @@ func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*User, e
 	verifier := auth.GetTokenVerifier()
 	accessToken, err := verifier.Verify(gc, token)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("could not obtain token from cookie: %s", err.Error()))
+		return nil, fmt.Errorf("could not obtain token from cookie: %s", err.Error())
 	}
 	var claims map[string]any
 	if err := accessToken.Claims(&claims); err != nil {
-		return nil, errors.New(fmt.Sprintf("could not map clains: %s", err.Error()))
+		return nil, fmt.Errorf("could not map clains: %s", err.Error())
 	}
 	if _, ok := claims["iss"]; !ok {
 		return nil, errors.New("no issues in claim")

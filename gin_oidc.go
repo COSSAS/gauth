@@ -84,7 +84,7 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
 		api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("nonce for verified id token did not match"))
 		return
 	}
-	auth.Cookiejar.Delete(gc, cookies.Nonce)
+	_ = auth.Cookiejar.Delete(gc, cookies.Nonce)
 	accessToken := oauth2Token.AccessToken
 
 	userInfo, err := auth.GetProvider().UserInfo(localContext, oauth2.StaticTokenSource(oauth2Token))
