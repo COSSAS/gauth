@@ -79,7 +79,13 @@ func (auth *Authenticator) setSessionAuthContext() gin.HandlerFunc {
 			gc.Abort()
 			return
 		}
-		setContext(gc, *user)
+
+		err = setContext(gc, *user)
+		if err != nil {
+			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
+			gc.Abort()
+			return
+		}
 		gc.Next()
 	}
 }
@@ -105,7 +111,13 @@ func (auth *Authenticator) setBearerAuthContext() gin.HandlerFunc {
 			return
 		}
 
-		setContext(gc, *user)
+		err = setContext(gc, *user)
+		if err != nil {
+			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
+			gc.Abort()
+			return
+		}
+
 		gc.Next()
 	}
 }
