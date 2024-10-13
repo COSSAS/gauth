@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"soarca-gui/auth/api"
-	"soarca-gui/auth/cookies"
+
+	"github.com/COSSAS/gauth/cookies"
+
+	"github.com/COSSAS/gauth/api"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-gonic/gin"

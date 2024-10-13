@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"soarca-gui/auth/cookies"
-	"soarca-gui/utils"
+	"os"
 	"strconv"
 	"strings"
+
+	"github.com/COSSAS/gauth/cookies"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/securecookie"
@@ -56,14 +57,14 @@ func SetupNewAuthHandler() *Authenticator {
 		cookieEncryptionKey string
 		oidcCallbackPath    string
 	}{
-		providerLink:        utils.GetEnv("OIDC_PROVIDER", ""),
+		providerLink:        GetEnv("OIDC_PROVIDER", ""),
 		soarcaGUIDomain:     buildSoarcaGUIURI(),
-		clientID:            utils.GetEnv("OIDC_CLIENT_ID", ""),
-		clientSecret:        utils.GetEnv("OIDC_CLIENT_SECRET", ""),
-		skipTLSValidation:   utils.GetEnv("OIDC_SKIP_TLS_VERIFY", "false"),
-		cookieJarSecret:     utils.GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGHT))),
-		cookieEncryptionKey: utils.GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
-		oidcCallbackPath:    utils.GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
+		clientID:            GetEnv("OIDC_CLIENT_ID", ""),
+		clientSecret:        GetEnv("OIDC_CLIENT_SECRET", ""),
+		skipTLSValidation:   GetEnv("OIDC_SKIP_TLS_VERIFY", "false"),
+		cookieJarSecret:     GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGHT))),
+		cookieEncryptionKey: GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
+		oidcCallbackPath:    GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
 	}
 
 	validateEnvVariables(env)
@@ -107,8 +108,8 @@ func SetupNewAuthHandler() *Authenticator {
 }
 
 func buildSoarcaGUIURI() string {
-	domain := utils.GetEnv("SOARCA_GUI_DOMAIN", "http://localhost")
-	port := utils.GetEnv("PORT", "8081")
+	domain := GetEnv("SOARCA_GUI_DOMAIN", "http://localhost")
+	port := GetEnv("PORT", "8081")
 	return fmt.Sprintf("%s:%s", domain, port)
 }
 
@@ -169,4 +170,11 @@ func (auth *Authenticator) GetProvider() *oidc.Provider {
 
 func (auth *Authenticator) GetTokenVerifier() *oidc.IDTokenVerifier {
 	return auth.verifierProvider.Verifier(auth.OIDCconfig)
+}
+
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
 }

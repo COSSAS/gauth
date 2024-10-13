@@ -1,5 +1,5 @@
-.PHONY test
-test: build-templ
+.PHONY: test
+test: 
 	go test ./... -v
 
-.DEFAULT_GOAL := dev  
+.DEFAULT_GOAL := dev

@@ -3,9 +3,11 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"soarca-gui/auth/api"
-	"soarca-gui/auth/cookies"
 	"strings"
+
+	"github.com/COSSAS/gauth/cookies"
+
+	"github.com/COSSAS/gauth/api"
 
 	"github.com/gin-gonic/gin"
 )
