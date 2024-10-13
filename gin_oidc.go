@@ -76,7 +76,7 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
 		return
 	}
 	nonce, isNewNonce, err := auth.Cookiejar.Get(gc, cookies.Nonce)
-	if isNewNonce || nonce == "" {
+	if isNewNonce || nonce == "" || err != nil {
 		api.JSONErrorStatus(gc, http.StatusBadRequest, errors.New("invalid or missing nonce"))
 		return
 	}
