@@ -1,2 +1,2 @@
 # gauth
-A auth implemenation for SOARCA
+An auth implemenation for SOARCA
