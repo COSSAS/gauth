@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/COSSAS/gauth/cookies"
@@ -25,15 +24,14 @@ func (auth *Authenticator) OIDCRedirectToLogin(gc *gin.Context) {
 	nonce, err := randString(16)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to generate nonce"))
-		return
 	}
-	nonceCookie, err := cookies.NewCookie(cookies.Nonce, nonce)
+	nonceCookie, _ := cookies.NewCookie(cookies.Nonce, nonce)
 	err = auth.Cookiejar.Store(gc, nonceCookie)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to set nonce"))
 		return
 	}
-	stateCookie, err := cookies.NewCookie(cookies.State, state)
+	stateCookie, _ := cookies.NewCookie(cookies.State, state)
 	err = auth.Cookiejar.Store(gc, stateCookie)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to set state"))
@@ -62,7 +60,6 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
 		localContext = context.WithValue(localContext, oauth2.HTTPClient, client)
 	}
 	oauth2Token, err := auth.OauthConfig.Exchange(localContext, gc.Query("code"))
-	fmt.Println(err)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("could not exchange code for token"))
 		return
@@ -106,9 +103,11 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to set access cookie token"))
 		return
 	}
-	auth.Cookiejar.Store(gc, tokenCookie)
-	auth.Cookiejar.Delete(gc, cookies.Nonce)
-	auth.Cookiejar.Delete(gc, cookies.State)
-
+	err = auth.Cookiejar.Store(gc, tokenCookie)
+	if err != nil {
+		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("internal error could not set access cookie"))
+	}
+	_ = auth.Cookiejar.Delete(gc, cookies.Nonce)
+	_ = auth.Cookiejar.Delete(gc, cookies.State)
 	gc.Redirect(http.StatusFound, "/dashboard")
 }
