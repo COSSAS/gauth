@@ -22,13 +22,6 @@ const (
 	COOKIE_SECRET_KEY_LENGHT     = 32
 )
 
-type User struct {
-	Username string   `json:"username"`
-	Email    string   `json:"email"`
-	Name     string   `json:"name"`
-	Groups   []string `json:"groups"`
-}
-
 type UserClaimsConfig struct {
 	OIDCClaimUsernameField string
 	OIDCClaimEmailField    string
@@ -152,9 +145,9 @@ func setupHTTPClient(skipTLS bool) *http.Client {
 	return http.DefaultClient
 }
 
-func New(cj cookies.ICookieJar, OIDCconfig *oidc.Config, OauthConfig *oauth2.Config, verifierProvider *oidc.Provider, skipTLSValidation bool, userClaims *UserClaimsConfig) *Authenticator {
+func New(jar cookies.ICookieJar, OIDCconfig *oidc.Config, OauthConfig *oauth2.Config, verifierProvider *oidc.Provider, skipTLSValidation bool, userClaims *UserClaimsConfig) *Authenticator {
 	return &Authenticator{
-		Cookiejar:         cj,
+		Cookiejar:         jar,
 		OIDCconfig:        OIDCconfig,
 		OauthConfig:       OauthConfig,
 		verifierProvider:  verifierProvider,
