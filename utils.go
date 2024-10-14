@@ -4,12 +4,21 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"os"
 )
 
-func randString(nByte int) (string, error) {
-	b := make([]byte, nByte)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+// Function returns crypto random string of specified string size; stringSize
+func randString(stringSize int) (string, error) {
+	byteArray := make([]byte, stringSize)
+	if _, err := io.ReadFull(rand.Reader, byteArray); err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
+	return base64.RawURLEncoding.EncodeToString(byteArray), nil
+}
+
+func GetEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
 }

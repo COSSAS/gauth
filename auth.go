@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -170,11 +169,4 @@ func (auth *Authenticator) GetProvider() *oidc.Provider {
 
 func (auth *Authenticator) GetTokenVerifier() *oidc.IDTokenVerifier {
 	return auth.verifierProvider.Verifier(auth.OIDCconfig)
-}
-
-func GetEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
 }

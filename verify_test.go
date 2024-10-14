@@ -3,6 +3,7 @@ package auth
 import (
 	"testing"
 
+	"github.com/COSSAS/gauth/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestMapClaimsToUserAllFieldsMappedCorrectly(t *testing.T) {
 		"name":               "soarca",
 		"groups":             []interface{}{"users", "admins"},
 	}
-	expectedUser := &User{
+	expectedUser := &models.User{
 		Username: "soarca-gui",
 		Email:    "soarca@soarca.com",
 		Name:     "soarca",

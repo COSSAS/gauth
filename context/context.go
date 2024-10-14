@@ -1,8 +1,9 @@
-package auth
+package context
 
 import (
 	"encoding/json"
 
+	"github.com/COSSAS/gauth/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,7 +12,7 @@ const (
 	userGroupsContextKey = "user-groups"
 )
 
-func setContext(gc *gin.Context, user User) error {
+func SetContext(gc *gin.Context, user models.User) error {
 	userJSON, err := json.Marshal(user)
 	if err != nil {
 		return err
@@ -21,19 +22,19 @@ func setContext(gc *gin.Context, user User) error {
 	return nil
 }
 
-func GetUserFromContext(gc *gin.Context) (User, bool) {
+func GetUserFromContext(gc *gin.Context) (models.User, bool) {
 	userJSON, exists := gc.Get(userValueContextKey)
 	if !exists {
-		return User{}, false
+		return models.User{}, false
 	}
 	userString, ok := userJSON.(string)
 	if !ok {
-		return User{}, false
+		return models.User{}, false
 	}
-	var user User
+	var user models.User
 	err := json.Unmarshal([]byte(userString), &user)
 	if err != nil {
-		return User{}, false
+		return models.User{}, false
 	}
 	return user, true
 }

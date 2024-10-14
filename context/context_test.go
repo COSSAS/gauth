@@ -1,8 +1,9 @@
-package auth
+package context
 
 import (
 	"testing"
 
+	"github.com/COSSAS/gauth/models"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -10,13 +11,13 @@ import (
 func TestSetContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(nil)
-	user := User{
+	user := models.User{
 		Username: "tester12",
 		Name:     "tester",
 		Email:    "tester@soarca.com",
 		Groups:   []string{"admin", "user"},
 	}
-	err := setContext(c, user)
+	err := SetContext(c, user)
 	assert.NoError(t, err)
 	userJSON, exists := c.Get(userValueContextKey)
 	assert.True(t, exists)
@@ -32,13 +33,13 @@ func TestGetUserFromContext(t *testing.T) {
 	user, exists := GetUserFromContext(c)
 	assert.False(t, exists)
 	assert.Empty(t, user)
-	originalUser := User{
+	originalUser := models.User{
 		Username: "tester12",
 		Email:    "tester@soarca.com",
 		Name:     "tester",
 		Groups:   []string{"admin", "user"},
 	}
-	err := setContext(c, originalUser)
+	err := SetContext(c, originalUser)
 	assert.NoError(t, err)
 	user, exists = GetUserFromContext(c)
 	assert.True(t, exists)

@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/COSSAS/gauth/models"
 	"github.com/gin-gonic/gin"
 )
 
-func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*User, error) {
+func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*models.User, error) {
 	verifier := auth.GetTokenVerifier()
 	accessToken, err := verifier.Verify(gc, token)
 	if err != nil {
@@ -23,8 +24,8 @@ func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*User, e
 	return auth.mapClaimsToUser(claims)
 }
 
-func (auth *Authenticator) mapClaimsToUser(claims map[string]any) (*User, error) {
-	user := &User{}
+func (auth *Authenticator) mapClaimsToUser(claims map[string]any) (*models.User, error) {
+	user := &models.User{}
 
 	if username, ok := claims[auth.userclaimConfig.OIDCClaimUsernameField].(string); ok {
 		user.Username = username

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/COSSAS/gauth/context"
 	"github.com/COSSAS/gauth/cookies"
 
 	"github.com/COSSAS/gauth/api"
@@ -14,13 +15,13 @@ import (
 
 func (auth *Authenticator) Middleware(requiredGroups []string) gin.HandlerFunc {
 	return func(gc *gin.Context) {
-		_, exists := GetUserFromContext(gc)
+		_, exists := context.GetUserFromContext(gc)
 		if !exists {
 			api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("user not authenticated"))
 			gc.Abort()
 			return
 		}
-		userGroups := GetUserAssignedGroups(gc)
+		userGroups := context.GetUserAssignedGroups(gc)
 		if !hasRequiredGroups(userGroups, requiredGroups) {
 			api.JSONErrorStatus(gc, http.StatusForbidden, errors.New("insufficient permissions"))
 			gc.Abort()
@@ -80,7 +81,7 @@ func (auth *Authenticator) setSessionAuthContext() gin.HandlerFunc {
 			return
 		}
 
-		err = setContext(gc, *user)
+		err = context.SetContext(gc, *user)
 		if err != nil {
 			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
 			gc.Abort()
@@ -111,7 +112,7 @@ func (auth *Authenticator) setBearerAuthContext() gin.HandlerFunc {
 			return
 		}
 
-		err = setContext(gc, *user)
+		err = context.SetContext(gc, *user)
 		if err != nil {
 			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
 			gc.Abort()
