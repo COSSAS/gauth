@@ -41,13 +41,13 @@ func (auth *Authenticator) OIDCRedirectToLogin(gc *gin.Context) {
 }
 
 func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
-	state, isNew, err := auth.Cookiejar.Get(gc, cookies.State)
+	stateCookie, isNew, err := auth.Cookiejar.Get(gc, cookies.State)
 
-	if isNew || state == "" || err != nil {
+	if isNew || stateCookie == "" || err != nil {
 		api.JSONErrorStatus(gc, http.StatusBadRequest, errors.New("state missing"))
 		return
 	}
-	if state != gc.Query("state") {
+	if stateCookie != gc.Query("state") {
 		api.JSONErrorStatus(gc, http.StatusBadRequest, errors.New("state mismatch"))
 		return
 	}
