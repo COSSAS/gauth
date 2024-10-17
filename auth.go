@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/COSSAS/gauth/cookies"
+	"github.com/gin-gonic/gin"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/securecookie"
@@ -19,8 +19,29 @@ import (
 const (
 	DEFAULT_OIDC_CALLBACK_PATH   = "/oidc-callback"
 	COOKIE_ENCRYPTION_KEY_LENGTH = 32
-	COOKIE_SECRET_KEY_LENGHT     = 32
+	COOKIE_SECRET_KEY_LENGTH     = 32
 )
+
+type ConfigMode int
+
+const (
+	ModeVerify ConfigMode = iota
+	ModeOIDCRedirect
+)
+
+type Provider string
+
+const (
+	Generic   Provider = "Generic"
+	Authentik Provider = "Authentik"
+)
+
+type IAuth interface {
+	Middleware(groups []string)
+	LoadAuthContext() gin.HandlerFunc
+	OIDCCallBack(gc *gin.Context)
+	OIDCRedirectToLogin(gc *gin.Context)
+}
 
 type UserClaimsConfig struct {
 	OIDCClaimUsernameField string
@@ -38,12 +59,8 @@ type Authenticator struct {
 	skipTLSValidation bool
 }
 
-//	type Auth interface{
-//	  Middleware([]string groups)
-//	  New()
-//	  LoadAuthContext()
-//	}
 type Config struct {
+	Mode                ConfigMode
 	ProviderLink        string
 	ClientID            string
 	ClientSecret        string
@@ -51,71 +68,32 @@ type Config struct {
 	OidcCallbackPath    string
 	CookieJarSecret     string
 	CookieEncryptionKey string
+	RedirectURL         string
+	Provider            Provider
 }
 
-func DefaultAuthentikConfig() *Config {
-	return &Config{}
+func DefaultConfig() *Config {
+	return &Config{
+		Mode:         ModeVerify,
+		ProviderLink: GetEnv("OIDC_PROVIDER", ""),
+		ClientID:     GetEnv("OIDC_CLIENT_ID", ""),
+		Provider:     Authentik,
+	}
 }
 
-func SetupNewAuthHandler() *Authenticator {
-	env := struct {
-		providerLink        string
-		redirectUrl         string
-		clientID            string
-		clientSecret        string
-		skipTLSValidation   string
-		cookieJarSecret     string
-		cookieEncryptionKey string
-		oidcCallbackPath    string
-	}{
-		providerLink:        GetEnv("OIDC_PROVIDER", ""),
-		redirectUrl:         redirectUrl(),
-		clientID:            GetEnv("OIDC_CLIENT_ID", ""),
-		clientSecret:        GetEnv("OIDC_CLIENT_SECRET", ""),
-		skipTLSValidation:   GetEnv("OIDC_SKIP_TLS_VERIFY", "false"),
-		cookieJarSecret:     GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGHT))),
-		cookieEncryptionKey: GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
-		oidcCallbackPath:    GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
+func OIDCRedirectConfig() *Config {
+	return &Config{
+		Mode:                ModeOIDCRedirect,
+		ProviderLink:        GetEnv("OIDC_PROVIDER", ""),
+		ClientID:            GetEnv("OIDC_CLIENT_ID", ""),
+		ClientSecret:        GetEnv("OIDC_CLIENT_SECRET", ""),
+		SkipTLSValidation:   GetEnvBool("OIDC_SKIP_TLS_VERIFY", false),
+		OidcCallbackPath:    GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
+		CookieJarSecret:     GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGTH))),
+		CookieEncryptionKey: GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
+		RedirectURL:         redirectUrl(),
+		Provider:            Authentik,
 	}
-
-	validateEnvVariables(env)
-	skipTLSValidation, err := strconv.ParseBool(env.skipTLSValidation)
-	if err != nil {
-		log.Printf("Invalid SKIP_TLS_VERIFY value. Defaulting to false. Error: %v", err)
-		skipTLSValidation = false
-	}
-
-	client := setupHTTPClient(skipTLSValidation)
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
-	provider, err := oidc.NewProvider(ctx, env.providerLink)
-	if err != nil {
-		log.Fatalf("Failed to create OIDC provider: %v", err)
-	}
-
-	oidcConfig := &oidc.Config{ClientID: env.clientID}
-	oauthConfig := &oauth2.Config{
-		ClientID:     env.clientID,
-		ClientSecret: env.clientSecret,
-		RedirectURL:  fmt.Sprintf("%s%s", env.redirectUrl, env.oidcCallbackPath),
-		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
-	}
-	userClaimsConfig := &UserClaimsConfig{
-		OIDCClaimUsernameField: "preferred_username",
-		OIDCClaimEmailField:    "email",
-		OIDCClaimNameField:     "name",
-		OIDCClaimGroupsField:   "groups",
-	}
-
-	cookieJar := cookies.NewCookieJar([]byte(env.cookieJarSecret), []byte(env.cookieEncryptionKey))
-
-	return New(
-		cookieJar,
-		oidcConfig,
-		oauthConfig,
-		provider,
-		skipTLSValidation,
-		userClaimsConfig)
 }
 
 func redirectUrl() string {
@@ -124,32 +102,76 @@ func redirectUrl() string {
 	return fmt.Sprintf("%s:%s", domain, port)
 }
 
-func validateEnvVariables(env struct {
-	providerLink        string
-	redirectUrl         string
-	clientID            string
-	clientSecret        string
-	skipTLSValidation   string
-	cookieJarSecret     string
-	cookieEncryptionKey string
-	oidcCallbackPath    string
-},
-) {
-	if env.providerLink == "" {
-		log.Fatal("invalid provider link for the env: OIDC_PROVIDER")
+func New(config *Config) (*Authenticator, error) {
+	if err := validateConfig(config); err != nil {
+		return nil, err
 	}
-	if env.clientID == "" {
-		log.Fatal("invalid oidc client ID for the env: OIDC_CLIENT_ID")
+
+	client := setupHTTPClient(config.SkipTLSValidation)
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
+	provider, err := oidc.NewProvider(ctx, config.ProviderLink)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OIDC provider: %v", err)
 	}
-	if env.clientSecret == "" {
-		log.Fatal("invalid oidc client secret for the env: OIDC_CLIENT_SECRET")
+
+	oidcConfig := &oidc.Config{ClientID: config.ClientID}
+	oauthConfig := &oauth2.Config{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		Endpoint:     provider.Endpoint(),
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email", "groups"},
 	}
-	if env.oidcCallbackPath == "" {
-		log.Fatal("invalid OIDC callback path for the env: OIDC_CALLBACK_PATH")
+
+	if config.Mode == ModeOIDCRedirect {
+		oauthConfig.RedirectURL = fmt.Sprintf("%s%s", config.RedirectURL, config.OidcCallbackPath)
 	}
-	if !strings.HasPrefix(env.oidcCallbackPath, "/") {
-		log.Fatal("OIDC callback path must start with a forward slash (/)")
+
+	userClaimsConfig := &UserClaimsConfig{
+		OIDCClaimUsernameField: "preferred_username",
+		OIDCClaimEmailField:    "email",
+		OIDCClaimNameField:     "name",
+		OIDCClaimGroupsField:   "groups",
 	}
+
+	var cookieJar cookies.ICookieJar
+	if config.Mode == ModeOIDCRedirect {
+		cookieJar = cookies.NewCookieJar([]byte(config.CookieJarSecret), []byte(config.CookieEncryptionKey))
+	}
+
+	return &Authenticator{
+		Cookiejar:         cookieJar,
+		OIDCconfig:        oidcConfig,
+		OauthConfig:       oauthConfig,
+		verifierProvider:  provider,
+		userclaimConfig:   userClaimsConfig,
+		skipTLSValidation: config.SkipTLSValidation,
+	}, nil
+}
+
+func validateConfig(config *Config) error {
+	if config.ProviderLink == "" {
+		return fmt.Errorf("invalid provider link")
+	}
+	if config.ClientID == "" {
+		return fmt.Errorf("invalid OIDC client ID")
+	}
+
+	if config.Mode == ModeOIDCRedirect {
+		if config.ClientSecret == "" {
+			return fmt.Errorf("invalid OIDC client secret")
+		}
+		if config.OidcCallbackPath == "" {
+			return fmt.Errorf("invalid OIDC callback path")
+		}
+		if !strings.HasPrefix(config.OidcCallbackPath, "/") {
+			return fmt.Errorf("OIDC callback path must start with a forward slash (/)")
+		}
+		if config.RedirectURL == "" {
+			return fmt.Errorf("invalid redirect URL")
+		}
+	}
+
+	return nil
 }
 
 func setupHTTPClient(skipTLS bool) *http.Client {
@@ -164,21 +186,37 @@ func setupHTTPClient(skipTLS bool) *http.Client {
 	return http.DefaultClient
 }
 
-func New(jar cookies.ICookieJar, OIDCconfig *oidc.Config, OauthConfig *oauth2.Config, verifierProvider *oidc.Provider, skipTLSValidation bool, userClaims *UserClaimsConfig) *Authenticator {
-	return &Authenticator{
-		Cookiejar:         jar,
-		OIDCconfig:        OIDCconfig,
-		OauthConfig:       OauthConfig,
-		verifierProvider:  verifierProvider,
-		userclaimConfig:   userClaims,
-		skipTLSValidation: skipTLSValidation,
-	}
-}
-
 func (auth *Authenticator) GetProvider() *oidc.Provider {
 	return auth.verifierProvider
 }
 
 func (auth *Authenticator) GetTokenVerifier() *oidc.IDTokenVerifier {
 	return auth.verifierProvider.Verifier(auth.OIDCconfig)
+}
+
+func GetUserClaims(provider Provider) *UserClaimsConfig {
+	switch provider {
+	case Authentik:
+		return getUserClaimsAuthentik()
+	default:
+		return getUserClaimsGeneric()
+	}
+}
+
+func getUserClaimsAuthentik() *UserClaimsConfig {
+	return &UserClaimsConfig{
+		OIDCClaimUsernameField: "preferred_username",
+		OIDCClaimEmailField:    "email",
+		OIDCClaimNameField:     "name",
+		OIDCClaimGroupsField:   "groups",
+	}
+}
+
+func getUserClaimsGeneric() *UserClaimsConfig {
+	return &UserClaimsConfig{
+		OIDCClaimUsernameField: "sub",
+		OIDCClaimEmailField:    "email",
+		OIDCClaimNameField:     "name",
+		OIDCClaimGroupsField:   "groups",
+	}
 }
