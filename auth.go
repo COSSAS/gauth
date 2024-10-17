@@ -38,10 +38,29 @@ type Authenticator struct {
 	skipTLSValidation bool
 }
 
+//	type Auth interface{
+//	  Middleware([]string groups)
+//	  New()
+//	  LoadAuthContext()
+//	}
+type Config struct {
+	ProviderLink        string
+	ClientID            string
+	ClientSecret        string
+	SkipTLSValidation   bool
+	OidcCallbackPath    string
+	CookieJarSecret     string
+	CookieEncryptionKey string
+}
+
+func DefaultAuthentikConfig() *Config {
+	return &Config{}
+}
+
 func SetupNewAuthHandler() *Authenticator {
 	env := struct {
 		providerLink        string
-		soarcaGUIDomain     string
+		redirectUrl         string
 		clientID            string
 		clientSecret        string
 		skipTLSValidation   string
@@ -50,7 +69,7 @@ func SetupNewAuthHandler() *Authenticator {
 		oidcCallbackPath    string
 	}{
 		providerLink:        GetEnv("OIDC_PROVIDER", ""),
-		soarcaGUIDomain:     buildSoarcaGUIURI(),
+		redirectUrl:         redirectUrl(),
 		clientID:            GetEnv("OIDC_CLIENT_ID", ""),
 		clientSecret:        GetEnv("OIDC_CLIENT_SECRET", ""),
 		skipTLSValidation:   GetEnv("OIDC_SKIP_TLS_VERIFY", "false"),
@@ -77,7 +96,7 @@ func SetupNewAuthHandler() *Authenticator {
 	oauthConfig := &oauth2.Config{
 		ClientID:     env.clientID,
 		ClientSecret: env.clientSecret,
-		RedirectURL:  fmt.Sprintf("%s%s", env.soarcaGUIDomain, env.oidcCallbackPath),
+		RedirectURL:  fmt.Sprintf("%s%s", env.redirectUrl, env.oidcCallbackPath),
 		Endpoint:     provider.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 	}
@@ -99,7 +118,7 @@ func SetupNewAuthHandler() *Authenticator {
 		userClaimsConfig)
 }
 
-func buildSoarcaGUIURI() string {
+func redirectUrl() string {
 	domain := GetEnv("SOARCA_GUI_DOMAIN", "http://localhost")
 	port := GetEnv("PORT", "8081")
 	return fmt.Sprintf("%s:%s", domain, port)
@@ -107,7 +126,7 @@ func buildSoarcaGUIURI() string {
 
 func validateEnvVariables(env struct {
 	providerLink        string
-	soarcaGUIDomain     string
+	redirectUrl         string
 	clientID            string
 	clientSecret        string
 	skipTLSValidation   string
