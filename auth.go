@@ -39,7 +39,7 @@ const (
 type IAuth interface {
 	Middleware(groups []string)
 	LoadAuthContext() gin.HandlerFunc
-	OIDCCallBack(gc *gin.Context)
+	OIDCCallBack(gc *gin.Context, redirectPath string)
 	OIDCRedirectToLogin(gc *gin.Context)
 }
 

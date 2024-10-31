@@ -40,7 +40,7 @@ func (auth *Authenticator) OIDCRedirectToLogin(gc *gin.Context) {
 	gc.Redirect(http.StatusFound, auth.OauthConfig.AuthCodeURL(state, oidc.Nonce(nonce)))
 }
 
-func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
+func (auth *Authenticator) OIDCCallBack(gc *gin.Context, redirectPath string) {
 	stateCookie, isNew, err := auth.Cookiejar.Get(gc, cookies.State)
 
 	if isNew || stateCookie == "" || err != nil {
@@ -109,5 +109,10 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context) {
 	}
 	_ = auth.Cookiejar.Delete(gc, cookies.Nonce)
 	_ = auth.Cookiejar.Delete(gc, cookies.State)
-	gc.Redirect(http.StatusFound, "/dashboard")
+	gc.Redirect(http.StatusFound, redirectPath)
+}
+
+func (auth *Authenticator) Logout(gc *gin.Context, redirectPath string) {
+	auth.Cookiejar.Delete(gc, cookies.Token)
+	gc.Redirect(http.StatusFound, redirectPath)
 }
