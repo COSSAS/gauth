@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/COSSAS/gauth/cookies"
 
@@ -114,5 +115,30 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context, redirectPath string) {
 
 func (auth *Authenticator) Logout(gc *gin.Context, redirectPath string) {
 	auth.Cookiejar.Delete(gc, cookies.Token)
-	gc.Redirect(http.StatusFound, redirectPath)
+
+	var providerJSON map[string]interface{}
+	if err := auth.GetProvider().Claims(&providerJSON); err != nil {
+		gc.Redirect(http.StatusFound, redirectPath)
+		return
+	}
+
+	endSessionEndpoint, ok := providerJSON["end_session_endpoint"].(string)
+	if !ok {
+		gc.Redirect(http.StatusFound, redirectPath)
+		return
+	}
+
+	logoutURL, err := url.Parse(endSessionEndpoint)
+	if err != nil {
+		gc.Redirect(http.StatusFound, redirectPath)
+		return
+	}
+
+	query := logoutURL.Query()
+	query.Set("client_id", auth.OIDCconfig.ClientID)
+	query.Set("post_logout_redirect_uri", redirectPath)
+
+	logoutURL.RawQuery = query.Encode()
+
+	gc.Redirect(http.StatusFound, logoutURL.String())
 }
