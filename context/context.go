@@ -12,18 +12,18 @@ const (
 	userGroupsContextKey = "user-groups"
 )
 
-func SetContext(gc *gin.Context, user models.User) error {
+func SetContext(ginContext *gin.Context, user models.User) error {
 	userJSON, err := json.Marshal(user)
 	if err != nil {
 		return err
 	}
-	gc.Set(userValueContextKey, string(userJSON))
-	gc.Set(userGroupsContextKey, user.Groups)
+	ginContext.Set(userValueContextKey, string(userJSON))
+	ginContext.Set(userGroupsContextKey, user.Groups)
 	return nil
 }
 
-func GetUserFromContext(gc *gin.Context) (models.User, bool) {
-	userJSON, exists := gc.Get(userValueContextKey)
+func GetUserFromContext(ginContext *gin.Context) (models.User, bool) {
+	userJSON, exists := ginContext.Get(userValueContextKey)
 	if !exists {
 		return models.User{}, false
 	}
@@ -39,8 +39,8 @@ func GetUserFromContext(gc *gin.Context) (models.User, bool) {
 	return user, true
 }
 
-func GetUserAssignedGroups(gc *gin.Context) []string {
-	groups, exists := gc.Get(userGroupsContextKey)
+func GetUserAssignedGroups(ginContext *gin.Context) []string {
+	groups, exists := ginContext.Get(userGroupsContextKey)
 	if !exists {
 		return []string{}
 	}

@@ -42,9 +42,9 @@ const (
 type IAuth interface {
 	Middleware(groups []string)
 	LoadAuthContext() gin.HandlerFunc
-	OIDCCallBack(gc *gin.Context, redirectPath string)
-	OIDCRedirectToLogin(gc *gin.Context)
-	Logout(gc *gin.Context)
+	OIDCCallBack(ginContext *gin.Context, redirectPath string)
+	OIDCRedirectToLogin(ginContext *gin.Context)
+	Logout(ginContext *gin.Context)
 }
 
 type UserClaimsConfig struct {
@@ -79,7 +79,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Mode:         ModeVerify,
-		ProviderLink: utils.GetEnv("OIDC_PROVIDER", ""),
+		ProviderLink: utils.GetEnv("OIDC_ISSUER", ""),
 		ClientID:     utils.GetEnv("OIDC_CLIENT_ID", ""),
 		Provider:     Authentik,
 	}
@@ -88,7 +88,7 @@ func DefaultConfig() *Config {
 func OIDCRedirectConfig() *Config {
 	return &Config{
 		Mode:                ModeOIDCRedirect,
-		ProviderLink:        utils.GetEnv("OIDC_PROVIDER", ""),
+		ProviderLink:        utils.GetEnv("OIDC_ISSUER", ""),
 		ClientID:            utils.GetEnv("OIDC_CLIENT_ID", ""),
 		ClientSecret:        utils.GetEnv("OIDC_CLIENT_SECRET", ""),
 		SkipTLSValidation:   utils.GetEnvBool("OIDC_SKIP_TLS_VERIFY", false),
@@ -198,9 +198,9 @@ func (auth *Authenticator) GetTokenVerifier() *oidc.IDTokenVerifier {
 	return auth.verifierProvider.Verifier(auth.OIDCconfig)
 }
 
-func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*models.User, error) {
+func (auth *Authenticator) VerifyClaims(ginContext *gin.Context, token string) (*models.User, error) {
 	verifier := auth.GetTokenVerifier()
-	accessToken, err := verifier.Verify(gc, token)
+	accessToken, err := verifier.Verify(ginContext, token)
 	if err != nil {
 		return nil, fmt.Errorf("could not obtain token from cookie: %s", err.Error())
 	}

@@ -14,20 +14,20 @@ import (
 )
 
 func (auth *Authenticator) Middleware(requiredGroups []string) gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		_, exists := context.GetUserFromContext(gc)
+	return func(ginContext *gin.Context) {
+		_, exists := context.GetUserFromContext(ginContext)
 		if !exists {
-			api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("user not authenticated"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusUnauthorized, errors.New("user not authenticated"))
+			ginContext.Abort()
 			return
 		}
-		userGroups := context.GetUserAssignedGroups(gc)
+		userGroups := context.GetUserAssignedGroups(ginContext)
 		if !hasRequiredGroups(userGroups, requiredGroups) {
-			api.JSONErrorStatus(gc, http.StatusForbidden, errors.New("insufficient permissions"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusForbidden, errors.New("insufficient permissions"))
+			ginContext.Abort()
 			return
 		}
-		gc.Next()
+		ginContext.Next()
 	}
 }
 
@@ -48,77 +48,77 @@ func hasRequiredGroups(userGroups []string, requiredGroups []string) bool {
 }
 
 func (auth *Authenticator) LoadAuthContext() gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		authToken := gc.Request.Header.Get("Authorization")
+	return func(ginContext *gin.Context) {
+		authToken := ginContext.Request.Header.Get("Authorization")
 
 		switch {
 		case authToken != "":
-			auth.setBearerAuthContext()(gc)
+			auth.setBearerAuthContext()(ginContext)
 		default:
-			auth.setSessionAuthContext()(gc)
+			auth.setSessionAuthContext()(ginContext)
 		}
-		gc.Next()
+		ginContext.Next()
 	}
 }
 
 func (auth *Authenticator) setSessionAuthContext() gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		tokenCookie, noCookie, err := auth.Cookiejar.Get(gc, cookies.Token)
+	return func(ginContext *gin.Context) {
+		tokenCookie, noCookie, err := auth.Cookiejar.Get(ginContext, cookies.Token)
 		if noCookie {
-			gc.Redirect(http.StatusFound, "/")
-			gc.Abort()
+			ginContext.Redirect(http.StatusFound, "/")
+			ginContext.Abort()
 			return
 		}
 		if err != nil {
-			api.JSONErrorStatus(gc, http.StatusBadRequest, errors.New("could not get cookie"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusBadRequest, errors.New("could not get cookie"))
+			ginContext.Abort()
 			return
 		}
-		user, err := auth.VerifyClaims(gc, tokenCookie)
+		user, err := auth.VerifyClaims(ginContext, tokenCookie)
 		if err != nil {
-			api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("could not map token claims"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusUnauthorized, errors.New("could not map token claims"))
+			ginContext.Abort()
 			return
 		}
 
-		err = context.SetContext(gc, *user)
+		err = context.SetContext(ginContext, *user)
 		if err != nil {
-			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusInternalServerError, errors.New("could not set context"))
+			ginContext.Abort()
 			return
 		}
-		gc.Next()
+		ginContext.Next()
 	}
 }
 
 func (auth *Authenticator) setBearerAuthContext() gin.HandlerFunc {
-	return func(gc *gin.Context) {
-		authHeader := gc.Request.Header.Get("Authorization")
+	return func(ginContext *gin.Context) {
+		authHeader := ginContext.Request.Header.Get("Authorization")
 		if authHeader == "" {
-			gc.Abort()
+			ginContext.Abort()
 		}
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		if tokenString == authHeader {
-			api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("invalid authorization header format"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusUnauthorized, errors.New("invalid authorization header format"))
+			ginContext.Abort()
 			return
 		}
 
-		user, err := auth.VerifyClaims(gc, tokenString)
+		user, err := auth.VerifyClaims(ginContext, tokenString)
 		if err != nil {
-			api.JSONErrorStatus(gc, http.StatusUnauthorized, errors.New("invalid bearer token"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusUnauthorized, errors.New("invalid bearer token"))
+			ginContext.Abort()
 			return
 		}
 
-		err = context.SetContext(gc, *user)
+		err = context.SetContext(ginContext, *user)
 		if err != nil {
-			api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("could not set context"))
-			gc.Abort()
+			api.JSONErrorStatus(ginContext, http.StatusInternalServerError, errors.New("could not set context"))
+			ginContext.Abort()
 			return
 		}
 
-		gc.Next()
+		ginContext.Next()
 	}
 }

@@ -33,9 +33,9 @@ func (cookie *Cookie) SetCookieValue(value string) {
 }
 
 type ICookieJar interface {
-	Store(context *gin.Context, cookie Cookie) error
-	Get(gc *gin.Context, cookieType CookieType) (value string, isNew bool, err error)
-	Delete(context *gin.Context, cookieType CookieType) error
+	Store(ginContext *gin.Context, cookie Cookie) error
+	Get(ginContext *gin.Context, cookieType CookieType) (value string, isNew bool, err error)
+	Delete(ginContext *gin.Context, cookieType CookieType) error
 }
 type CookieJar struct {
 	store sessions.Store
@@ -62,7 +62,7 @@ func NewCookieJar(secret []byte, encryptionKey []byte) *CookieJar {
 	return &CookieJar{store: sessions.NewCookieStore(secret, encryptionKey)}
 }
 
-func (cj *CookieJar) Delete(gc *gin.Context, cookieType CookieType) error {
+func (jar *CookieJar) Delete(ginContext *gin.Context, cookieType CookieType) error {
 	var sessionName string
 	var keyName string
 	switch cookieType {
@@ -79,7 +79,7 @@ func (cj *CookieJar) Delete(gc *gin.Context, cookieType CookieType) error {
 		return errors.New("no correct cookie type has been supplied, should be of type: Nonce | State | Token")
 	}
 
-	session, err := cj.store.Get(gc.Request, sessionName)
+	session, err := jar.store.Get(ginContext.Request, sessionName)
 	if err != nil {
 		return err
 	}
@@ -87,30 +87,30 @@ func (cj *CookieJar) Delete(gc *gin.Context, cookieType CookieType) error {
 	session.Options.MaxAge = -1
 	delete(session.Values, keyName)
 
-	return session.Save(gc.Request, gc.Writer)
+	return session.Save(ginContext.Request, ginContext.Writer)
 }
 
-func (cj *CookieJar) Store(gc *gin.Context, cookie Cookie) error {
+func (jar *CookieJar) Store(ginContext *gin.Context, cookie Cookie) error {
 	var session *sessions.Session
 	var err error
 
 	switch cookie.CookieType {
 	case Nonce:
-		session, err = cj.store.Get(gc.Request, CALLBACK_NONCE)
+		session, err = jar.store.Get(ginContext.Request, CALLBACK_NONCE)
 		if err != nil {
 			return err
 		}
 		session.Values["nonce"] = cookie.Value
 		session.Options.MaxAge = 60 * 5
 	case State:
-		session, err = cj.store.Get(gc.Request, CALLBACK_STATE)
+		session, err = jar.store.Get(ginContext.Request, CALLBACK_STATE)
 		if err != nil {
 			return err
 		}
 		session.Values["state"] = cookie.Value
 		session.Options.MaxAge = 60 * 5
 	case Token:
-		session, err = cj.store.Get(gc.Request, USER_TOKEN)
+		session, err = jar.store.Get(ginContext.Request, USER_TOKEN)
 		if err != nil {
 			return err
 		}
@@ -121,13 +121,13 @@ func (cj *CookieJar) Store(gc *gin.Context, cookie Cookie) error {
 	}
 
 	session.Options.Path = "/"
-	session.Options.Secure = gc.Request.TLS != nil
+	session.Options.Secure = ginContext.Request.TLS != nil
 	session.Options.SameSite = http.SameSiteLaxMode
 
-	return session.Save(gc.Request, gc.Writer)
+	return session.Save(ginContext.Request, ginContext.Writer)
 }
 
-func (cj *CookieJar) Get(gc *gin.Context, cookieType CookieType) (value string, isNew bool, err error) {
+func (jar *CookieJar) Get(ginContext *gin.Context, cookieType CookieType) (value string, isNew bool, err error) {
 	var sessionName string
 	var keyName string
 	switch cookieType {
@@ -144,7 +144,7 @@ func (cj *CookieJar) Get(gc *gin.Context, cookieType CookieType) (value string, 
 		return "", false, errors.New("no correct cookie type has been supplied, should be of type: Nonce | State | Token")
 	}
 
-	session, err := cj.store.Get(gc.Request, sessionName)
+	session, err := jar.store.Get(ginContext.Request, sessionName)
 	if err != nil {
 		return "", true, nil
 	}
