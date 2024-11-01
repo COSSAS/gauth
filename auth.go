@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -186,7 +185,6 @@ func setupHTTPClient(skipTLS bool) *http.Client {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 		client := &http.Client{Transport: tr}
-		log.Println("Warning: TLS verification is disabled. This should not be used in production.")
 		return client
 	}
 	return http.DefaultClient

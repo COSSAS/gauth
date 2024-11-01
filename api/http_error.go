@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,8 +25,6 @@ func JSONError(c *gin.Context, err error) {
 }
 
 func JSONErrorStatus(c *gin.Context, status int, err error) {
-	log.Println("JSONErrorStatus", status, err)
-
 	c.JSON(status, gin.H{
 		"error": err.Error(),
 	})
