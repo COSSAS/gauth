@@ -16,22 +16,22 @@ const (
 
 func setupTest() (*CookieJar, *gin.Context, *httptest.ResponseRecorder) {
 	cookieJar := NewCookieJar([]byte(testSecretKey), []byte(testEncryptionKey))
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
-	return cookieJar, c, w
+	writer := httptest.NewRecorder()
+	ginContext, _ := gin.CreateTestContext(writer)
+	ginContext.Request, _ = http.NewRequest(http.MethodGet, "/", nil)
+	return cookieJar, ginContext, writer
 }
 
 func TestSetCallBackState(t *testing.T) {
-	cookieJar, c, w := setupTest()
+	cookieJar, ginContext, writer := setupTest()
 
 	stateCookie, err := NewCookie(State, "test-state")
 	assert.NoError(t, err)
 
-	err = cookieJar.Store(c, stateCookie)
+	err = cookieJar.Store(ginContext, stateCookie)
 	assert.NoError(t, err)
 
-	cookies := w.Result().Cookies()
+	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies, "Expected cookies to be set in the response")
 
 	newRequest, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -50,15 +50,15 @@ func TestSetCallBackState(t *testing.T) {
 }
 
 func TestSetCallBackNonce(t *testing.T) {
-	cookieJar, c, w := setupTest()
+	cookieJar, ginContext, writer := setupTest()
 
 	nonceCookie, err := NewCookie(Nonce, "test-nonce")
 	assert.NoError(t, err)
 
-	err = cookieJar.Store(c, nonceCookie)
+	err = cookieJar.Store(ginContext, nonceCookie)
 	assert.NoError(t, err)
 
-	cookies := w.Result().Cookies()
+	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies, "Expected cookies to be set in the response")
 
 	newRequest, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -77,10 +77,10 @@ func TestSetCallBackNonce(t *testing.T) {
 }
 
 func TestGetStateSession(t *testing.T) {
-	cookieJar, c, w := setupTest()
+	cookieJar, ginContext, writer := setupTest()
 
 	// Test with no existing state
-	value, isNew, err := cookieJar.Get(c, State)
+	value, isNew, err := cookieJar.Get(ginContext, State)
 	assert.NoError(t, err)
 	assert.True(t, isNew)
 	assert.Empty(t, value)
@@ -88,10 +88,10 @@ func TestGetStateSession(t *testing.T) {
 	// Set a state
 	stateCookie, err := NewCookie(State, "test-state")
 	assert.NoError(t, err)
-	err = cookieJar.Store(c, stateCookie)
+	err = cookieJar.Store(ginContext, stateCookie)
 	assert.NoError(t, err)
 
-	cookies := w.Result().Cookies()
+	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies)
 
 	newRequest, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -109,10 +109,10 @@ func TestGetStateSession(t *testing.T) {
 }
 
 func TestGetUserToken(t *testing.T) {
-	cookieJar, c, w := setupTest()
+	cookieJar, ginContext, writer := setupTest()
 
 	// Test with no existing token
-	value, isNew, err := cookieJar.Get(c, Token)
+	value, isNew, err := cookieJar.Get(ginContext, Token)
 	assert.NoError(t, err)
 	assert.True(t, isNew)
 	assert.Empty(t, value)
@@ -120,10 +120,10 @@ func TestGetUserToken(t *testing.T) {
 	// Set a token
 	tokenCookie, err := NewCookie(Token, "test-token")
 	assert.NoError(t, err)
-	err = cookieJar.Store(c, tokenCookie)
+	err = cookieJar.Store(ginContext, tokenCookie)
 	assert.NoError(t, err)
 
-	cookies := w.Result().Cookies()
+	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies)
 
 	newRequest, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -141,14 +141,14 @@ func TestGetUserToken(t *testing.T) {
 }
 
 func TestSetUserToken(t *testing.T) {
-	cookieJar, c, w := setupTest()
+	cookieJar, ginContext, writer := setupTest()
 
 	tokenCookie, err := NewCookie(Token, "test-token")
 	assert.NoError(t, err)
-	err = cookieJar.Store(c, tokenCookie)
 	assert.NoError(t, err)
+	err = cookieJar.Store(ginContext, tokenCookie)
 
-	cookies := w.Result().Cookies()
+	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies)
 
 	newRequest, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -166,34 +166,34 @@ func TestSetUserToken(t *testing.T) {
 }
 
 func TestDeleteStateSession(t *testing.T) {
-	cookieJar, c, _ := setupTest()
+	cookieJar, ginContext, _ := setupTest()
 
 	stateCookie, err := NewCookie(State, "test-state")
 	assert.NoError(t, err)
-	err = cookieJar.Store(c, stateCookie)
+	err = cookieJar.Store(ginContext, stateCookie)
 	assert.NoError(t, err)
 
-	err = cookieJar.Delete(c, State)
+	err = cookieJar.Delete(ginContext, State)
 	assert.NoError(t, err)
 
-	value, isNew, err := cookieJar.Get(c, State)
+	value, isNew, err := cookieJar.Get(ginContext, State)
 	assert.NoError(t, err)
 	assert.True(t, isNew)
 	assert.Empty(t, value)
 }
 
 func TestDeleteNonceSession(t *testing.T) {
-	cookieJar, c, _ := setupTest()
+	cookieJar, ginContext, _ := setupTest()
 
 	nonceCookie, err := NewCookie(Nonce, "test-nonce")
 	assert.NoError(t, err)
-	err = cookieJar.Store(c, nonceCookie)
+	err = cookieJar.Store(ginContext, nonceCookie)
 	assert.NoError(t, err)
 
-	err = cookieJar.Delete(c, Nonce)
+	err = cookieJar.Delete(ginContext, Nonce)
 	assert.NoError(t, err)
 
-	value, isNew, err := cookieJar.Get(c, Nonce)
+	value, isNew, err := cookieJar.Get(ginContext, Nonce)
 	assert.NoError(t, err)
 	assert.True(t, isNew)
 	assert.Empty(t, value)
