@@ -114,7 +114,7 @@ func (auth *Authenticator) OIDCCallBack(gc *gin.Context, redirectPath string) {
 }
 
 func (auth *Authenticator) Logout(gc *gin.Context, redirectPath string) {
-	auth.Cookiejar.Delete(gc, cookies.Token)
+	_ = auth.Cookiejar.Delete(gc, cookies.Token)
 
 	var providerJSON map[string]interface{}
 	if err := auth.GetProvider().Claims(&providerJSON); err != nil {
