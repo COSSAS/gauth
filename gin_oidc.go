@@ -137,6 +137,7 @@ func (auth *Authenticator) Logout(gc *gin.Context, redirectPath string) {
 	query := logoutURL.Query()
 	query.Set("client_id", auth.OIDCconfig.ClientID)
 	query.Set("post_logout_redirect_uri", redirectPath)
+	query.Set("next", redirectPath)
 
 	logoutURL.RawQuery = query.Encode()
 
