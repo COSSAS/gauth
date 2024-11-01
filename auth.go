@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/COSSAS/gauth/cookies"
@@ -65,7 +66,7 @@ type Authenticator struct {
 
 type Config struct {
 	Mode                ConfigMode
-	ProviderLink        string
+	IssuerUri           string
 	ClientID            string
 	ClientSecret        string
 	SkipTLSValidation   bool
@@ -78,20 +79,21 @@ type Config struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		Mode:         ModeVerify,
-		ProviderLink: utils.GetEnv("OIDC_ISSUER", ""),
-		ClientID:     utils.GetEnv("OIDC_CLIENT_ID", ""),
-		Provider:     Authentik,
+		Mode:      ModeVerify,
+		IssuerUri: utils.GetEnv("OIDC_ISSUER", ""),
+		ClientID:  utils.GetEnv("OIDC_CLIENT_ID", ""),
+		Provider:  Authentik,
 	}
 }
 
 func OIDCRedirectConfig() *Config {
+	skipTLSValidation, _ := strconv.ParseBool(utils.GetEnv("OIDC_SKIP_TLS_VERIFY", "false"))
 	return &Config{
 		Mode:                ModeOIDCRedirect,
-		ProviderLink:        utils.GetEnv("OIDC_ISSUER", ""),
+		IssuerUri:           utils.GetEnv("OIDC_ISSUER", ""),
 		ClientID:            utils.GetEnv("OIDC_CLIENT_ID", ""),
 		ClientSecret:        utils.GetEnv("OIDC_CLIENT_SECRET", ""),
-		SkipTLSValidation:   utils.GetEnvBool("OIDC_SKIP_TLS_VERIFY", false),
+		SkipTLSValidation:   skipTLSValidation,
 		OidcCallbackPath:    utils.GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
 		CookieJarSecret:     utils.GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGTH))),
 		CookieEncryptionKey: utils.GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
@@ -113,7 +115,7 @@ func New(config *Config) (*Authenticator, error) {
 
 	client := setupHTTPClient(config.SkipTLSValidation)
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
-	provider, err := oidc.NewProvider(ctx, config.ProviderLink)
+	provider, err := oidc.NewProvider(ctx, config.IssuerUri)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OIDC provider: %v", err)
 	}
@@ -153,7 +155,7 @@ func New(config *Config) (*Authenticator, error) {
 }
 
 func validateConfig(config *Config) error {
-	if config.ProviderLink == "" {
+	if config.IssuerUri == "" {
 		return fmt.Errorf("invalid provider link")
 	}
 	if config.ClientID == "" {
