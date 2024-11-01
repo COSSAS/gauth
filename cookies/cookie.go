@@ -10,9 +10,12 @@ import (
 )
 
 const (
-	CALLBACK_STATE = "soarca_gui_state"
-	CALLBACK_NONCE = "soarca_gui_nonce"
-	USER_TOKEN     = "soarca_token"
+	CALLBACK_STATE     = "soarca_gui_state"
+	CALLBACK_NONCE     = "soarca_gui_nonce"
+	USER_TOKEN         = "soarca_token"
+	COOKIE_NO_LIFETIME = -1
+	STATE_LIFETIME     = 60 * 5
+	COOKIE_LIFETIME    = 60 * 60 * 8
 )
 
 type CookieType uint
@@ -84,7 +87,7 @@ func (jar *CookieJar) Delete(ginContext *gin.Context, cookieType CookieType) err
 		return err
 	}
 
-	session.Options.MaxAge = -1
+	session.Options.MaxAge = COOKIE_NO_LIFETIME
 	delete(session.Values, keyName)
 
 	return session.Save(ginContext.Request, ginContext.Writer)
@@ -101,21 +104,21 @@ func (jar *CookieJar) Store(ginContext *gin.Context, cookie Cookie) error {
 			return err
 		}
 		session.Values["nonce"] = cookie.Value
-		session.Options.MaxAge = 60 * 5
+		session.Options.MaxAge = STATE_LIFETIME
 	case State:
 		session, err = jar.store.Get(ginContext.Request, CALLBACK_STATE)
 		if err != nil {
 			return err
 		}
 		session.Values["state"] = cookie.Value
-		session.Options.MaxAge = 60 * 5
+		session.Options.MaxAge = STATE_LIFETIME
 	case Token:
 		session, err = jar.store.Get(ginContext.Request, USER_TOKEN)
 		if err != nil {
 			return err
 		}
 		session.Values["token"] = cookie.Value
-		session.Options.MaxAge = 60 * 60 * 8
+		session.Options.MaxAge = COOKIE_LIFETIME
 	default:
 		return errors.New("no correct cookie type has been supplied, should be of type: Nonce | State | Token")
 	}
