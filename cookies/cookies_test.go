@@ -145,8 +145,8 @@ func TestSetUserToken(t *testing.T) {
 
 	tokenCookie, err := NewCookie(Token, "test-token")
 	assert.NoError(t, err)
-	assert.NoError(t, err)
 	err = cookieJar.Store(ginContext, tokenCookie)
+	assert.NoError(t, err)
 
 	cookies := writer.Result().Cookies()
 	assert.NotEmpty(t, cookies)
