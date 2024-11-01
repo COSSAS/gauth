@@ -44,6 +44,7 @@ type IAuth interface {
 	LoadAuthContext() gin.HandlerFunc
 	OIDCCallBack(gc *gin.Context, redirectPath string)
 	OIDCRedirectToLogin(gc *gin.Context)
+	Logout(gc *gin.Context)
 }
 
 type UserClaimsConfig struct {
