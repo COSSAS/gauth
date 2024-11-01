@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/COSSAS/gauth/cookies"
+	"github.com/COSSAS/gauth/utils"
 
 	"github.com/COSSAS/gauth/api"
 
@@ -17,12 +18,12 @@ import (
 )
 
 func (auth *Authenticator) OIDCRedirectToLogin(gc *gin.Context) {
-	state, err := randString(16)
+	state, err := utils.RandString(16)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to generate state"))
 		return
 	}
-	nonce, err := randString(16)
+	nonce, err := utils.RandString(16)
 	if err != nil {
 		api.JSONErrorStatus(gc, http.StatusInternalServerError, errors.New("failed to generate nonce"))
 	}

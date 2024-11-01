@@ -1,4 +1,4 @@
-package gauth
+package utils
 
 import (
 	"crypto/rand"
@@ -10,7 +10,7 @@ import (
 )
 
 // Function returns crypto random string of specified string size; stringSize
-func randString(stringSize int) (string, error) {
+func RandString(stringSize int) (string, error) {
 	byteArray := make([]byte, stringSize)
 	if _, err := io.ReadFull(rand.Reader, byteArray); err != nil {
 		return "", err

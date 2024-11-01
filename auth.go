@@ -3,12 +3,15 @@ package gauth
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/COSSAS/gauth/cookies"
+	"github.com/COSSAS/gauth/models"
+	"github.com/COSSAS/gauth/utils"
 	"github.com/gin-gonic/gin"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -75,8 +78,8 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Mode:         ModeVerify,
-		ProviderLink: GetEnv("OIDC_PROVIDER", ""),
-		ClientID:     GetEnv("OIDC_CLIENT_ID", ""),
+		ProviderLink: utils.GetEnv("OIDC_PROVIDER", ""),
+		ClientID:     utils.GetEnv("OIDC_CLIENT_ID", ""),
 		Provider:     Authentik,
 	}
 }
@@ -84,21 +87,21 @@ func DefaultConfig() *Config {
 func OIDCRedirectConfig() *Config {
 	return &Config{
 		Mode:                ModeOIDCRedirect,
-		ProviderLink:        GetEnv("OIDC_PROVIDER", ""),
-		ClientID:            GetEnv("OIDC_CLIENT_ID", ""),
-		ClientSecret:        GetEnv("OIDC_CLIENT_SECRET", ""),
-		SkipTLSValidation:   GetEnvBool("OIDC_SKIP_TLS_VERIFY", false),
-		OidcCallbackPath:    GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
-		CookieJarSecret:     GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGTH))),
-		CookieEncryptionKey: GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
+		ProviderLink:        utils.GetEnv("OIDC_PROVIDER", ""),
+		ClientID:            utils.GetEnv("OIDC_CLIENT_ID", ""),
+		ClientSecret:        utils.GetEnv("OIDC_CLIENT_SECRET", ""),
+		SkipTLSValidation:   utils.GetEnvBool("OIDC_SKIP_TLS_VERIFY", false),
+		OidcCallbackPath:    utils.GetEnv("OIDC_CALLBACK_PATH", DEFAULT_OIDC_CALLBACK_PATH),
+		CookieJarSecret:     utils.GetEnv("COOKIE_SECRET_KEY", string(securecookie.GenerateRandomKey(COOKIE_SECRET_KEY_LENGTH))),
+		CookieEncryptionKey: utils.GetEnv("COOKIE_ENCRYPTION_KEY", string(securecookie.GenerateRandomKey(COOKIE_ENCRYPTION_KEY_LENGTH))),
 		RedirectURL:         redirectUrl(),
 		Provider:            Authentik,
 	}
 }
 
 func redirectUrl() string {
-	domain := GetEnv("SOARCA_GUI_DOMAIN", "http://localhost")
-	port := GetEnv("PORT", "8081")
+	domain := utils.GetEnv("SOARCA_GUI_DOMAIN", "http://localhost")
+	port := utils.GetEnv("PORT", "8081")
 	return fmt.Sprintf("%s:%s", domain, port)
 }
 
@@ -192,6 +195,44 @@ func (auth *Authenticator) GetProvider() *oidc.Provider {
 
 func (auth *Authenticator) GetTokenVerifier() *oidc.IDTokenVerifier {
 	return auth.verifierProvider.Verifier(auth.OIDCconfig)
+}
+
+func (auth *Authenticator) VerifyClaims(gc *gin.Context, token string) (*models.User, error) {
+	verifier := auth.GetTokenVerifier()
+	accessToken, err := verifier.Verify(gc, token)
+	if err != nil {
+		return nil, fmt.Errorf("could not obtain token from cookie: %s", err.Error())
+	}
+	var claims map[string]any
+	if err := accessToken.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("could not map clains: %s", err.Error())
+	}
+	if _, ok := claims["iss"]; !ok {
+		return nil, errors.New("no issues in claim")
+	}
+	return auth.mapClaimsToUser(claims)
+}
+
+func (auth *Authenticator) mapClaimsToUser(claims map[string]any) (*models.User, error) {
+	user := &models.User{}
+
+	if username, ok := claims[auth.userclaimConfig.OIDCClaimUsernameField].(string); ok {
+		user.Username = username
+	}
+	if email, ok := claims[auth.userclaimConfig.OIDCClaimEmailField].(string); ok {
+		user.Email = email
+	}
+	if name, ok := claims[auth.userclaimConfig.OIDCClaimNameField].(string); ok {
+		user.Name = name
+	}
+	if groups, ok := claims[auth.userclaimConfig.OIDCClaimGroupsField].([]interface{}); ok {
+		user.Groups = make([]string, len(groups))
+		for i, g := range groups {
+			user.Groups[i] = g.(string)
+		}
+	}
+
+	return user, nil
 }
 
 func GetUserClaims(provider Provider) *UserClaimsConfig {
