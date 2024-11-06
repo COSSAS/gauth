@@ -77,11 +77,13 @@ type Config struct {
 }
 
 func DefaultConfig() *Config {
+	skipTLSValidation, _ := strconv.ParseBool(utils.GetEnv("OIDC_SKIP_TLS_VERIFY", "false"))
 	return &Config{
-		Mode:      ModeVerify,
-		IssuerUri: utils.GetEnv("OIDC_ISSUER", ""),
-		ClientID:  utils.GetEnv("OIDC_CLIENT_ID", ""),
-		Provider:  Authentik,
+		Mode:              ModeVerify,
+		IssuerUri:         utils.GetEnv("OIDC_ISSUER", ""),
+		ClientID:          utils.GetEnv("OIDC_CLIENT_ID", ""),
+		Provider:          Authentik,
+		SkipTLSValidation: skipTLSValidation,
 	}
 }
 
