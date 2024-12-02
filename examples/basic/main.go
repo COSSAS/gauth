@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	// Use the default OIDC configuration with environment variables
+	// Use the default OIDC configuration for Authentik with environment variables
 	config := gauth.DefaultConfig()
 
 	// Or use OIDC redirect configuration
