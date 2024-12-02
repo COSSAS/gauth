@@ -9,10 +9,7 @@ import (
 
 func main() {
 	// Use the default OIDC configuration for Authentik with environment variables
-	config := gauth.DefaultConfig()
-
-	// Or use OIDC redirect configuration
-	// config := gauth.OIDCRedirectConfig()
+	config := gauth.OIDCRedirectConfig()
 
 	// Create authenticator
 	auth, err := gauth.New(config)
@@ -35,7 +32,7 @@ func main() {
 
 	r.GET("/logout", func(c *gin.Context) {
 		// Logout handler
-		auth.Logout(c)
+		auth.Logout(c, "/login")
 	})
 
 	// Protected routes
