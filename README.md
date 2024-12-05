@@ -54,7 +54,7 @@ For OIDC authentication:
 - Requires user to be in ALL specified groups
 
 
-## examples
+## Examples
 
 Examples are located in the `/examples/` directory. Real life implementation can be found here: <To be added>
 
@@ -67,6 +67,10 @@ Examples are located in the `/examples/` directory. Real life implementation can
   - Protected routes with middleware
   - Logout functionality
 
+
+
+#### Token Validation example
+- `examples/validation/main.go`: Demonstrates the validation proces of token obtained through a jwt-token `bearer`, and validated against the OIDC provider. 
 
 ## Security Considerations
 
