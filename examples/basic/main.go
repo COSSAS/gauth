@@ -17,26 +17,26 @@ func main() {
 		log.Fatalf("Failed to configure OIDC: %v", err)
 	}
 
-	r := gin.Default()
+	router := gin.Default()
 
 	// Configure routes based on authentication mode
-	r.GET("/login", func(c *gin.Context) {
+	router.GET("/login", func(c *gin.Context) {
 		// Redirect to OIDC login
 		auth.OIDCRedirectToLogin(c)
 	})
 
-	r.GET("/oidc-callback", func(c *gin.Context) {
+	router.GET("/oidc-callback", func(c *gin.Context) {
 		// Handle OIDC callback
 		auth.OIDCCallBack(c, "/dashboard")
 	})
 
-	r.GET("/logout", func(c *gin.Context) {
-		// Logout handler
+	// Logout handler
+	router.GET("/logout", func(c *gin.Context) {
 		auth.Logout(c, "/login")
 	})
 
 	// Protected routes
-	protectedGroup := r.Group("/")
+	protectedGroup := router.Group("/")
 	protectedGroup.Use(auth.LoadAuthContext())
 	protectedGroup.Use(auth.Middleware([]string{"admin"}))
 	protectedGroup.GET("/dashboard", func(c *gin.Context) {
@@ -45,5 +45,5 @@ func main() {
 		})
 	})
 
-	r.Run(":8080")
+	router.Run(":8080")
 }
