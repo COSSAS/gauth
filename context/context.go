@@ -10,6 +10,7 @@ import (
 const (
 	userValueContextKey  = "user-context"
 	userGroupsContextKey = "user-groups"
+	TokenContextKey      = "token-context"
 )
 
 func SetContext(ginContext *gin.Context, user models.User) error {
@@ -19,6 +20,11 @@ func SetContext(ginContext *gin.Context, user models.User) error {
 	}
 	ginContext.Set(userValueContextKey, string(userJSON))
 	ginContext.Set(userGroupsContextKey, user.Groups)
+	return nil
+}
+
+func SetTokenContext(ginContext *gin.Context, token string) error {
+	ginContext.Set(TokenContextKey, token)
 	return nil
 }
 
@@ -49,4 +55,16 @@ func GetUserAssignedGroups(ginContext *gin.Context) []string {
 		return []string{}
 	}
 	return assignedGroups
+}
+
+func GetTokenFromContext(ginContext *gin.Context) (string, bool) {
+	token, exists := ginContext.Get(TokenContextKey)
+	if !exists {
+		return "", false
+	}
+	tokenStr, ok := token.(string)
+	if !ok {
+		return "", false
+	}
+	return tokenStr, true
 }
