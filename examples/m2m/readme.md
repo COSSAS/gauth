@@ -45,14 +45,15 @@ export CLIENT_ID=WxUcBMGZdI7c0e5oYp6mYdEd64acpXSuWKh8zBH5
 export SERVICE_ACCOUNT=test2test
 export SERVICE_TOKEN=2Dzvbs5O7wjfaUj1k1YSqctRgVA5hDtsi18xIrmKeIn1pV0rn4G5nuuFQUwH
 export SKIP_TLS_VERIFY=true
+```
 
-Running the Application
+## Running the script
 
-Run the application using the following command:
+Run the script using the following command:
 
-go run main.go
+`go run main.go`
 
-Example Output
+Example Output:
 
 When the application is successfully run, you will see output similar to the following:
 
@@ -64,6 +65,4 @@ The retrieved access token can then be used for authorized access to other resou
 
 For more details, refer to the Authentik Documentation.
 
-
 This README ensures clarity and provides copyable Markdown for easy use in your repository. It explicitly mentions that the implementation is for M2M (Machine-to-Machine) applications.
-
