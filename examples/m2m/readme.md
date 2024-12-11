@@ -53,13 +53,15 @@ Run the script using the following command:
 
 `go run main.go`
 
-Example Output:
+Example Output
 
 When the application is successfully run, you will see output similar to the following:
 
+```
 Access Token: <retrieved-access-token>
 Token Type: Bearer
 Expires In: 3600 seconds
+```
 
 The retrieved access token can then be used for authorized access to other resources.
 
