@@ -65,6 +65,4 @@ Expires In: 3600 seconds
 
 The retrieved access token can then be used for authorized access to other resources.
 
-For more details, refer to the Authentik Documentation.
-
-This README ensures clarity and provides copyable Markdown for easy use in your repository. It explicitly mentions that the implementation is for M2M (Machine-to-Machine) applications.
+For more details, refer to the [Authentik](https://goauthentik.io/) Documentation.
