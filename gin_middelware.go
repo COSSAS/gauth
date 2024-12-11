@@ -87,6 +87,12 @@ func (auth *Authenticator) setSessionAuthContext() gin.HandlerFunc {
 			ginContext.Abort()
 			return
 		}
+		err = context.SetTokenContext(ginContext, tokenCookie)
+		if err != nil {
+			api.JSONErrorStatus(ginContext, http.StatusInternalServerError, errors.New("could not set context"))
+			ginContext.Abort()
+			return
+		}
 		ginContext.Next()
 	}
 }
