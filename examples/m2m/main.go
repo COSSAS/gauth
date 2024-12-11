@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -30,12 +31,13 @@ type TokenResponse struct {
 
 // NewTokenConfig creates a configuration from environment variables
 func NewTokenConfig() *TokenConfig {
+	skipTlsVerify, _ := strconv.ParseBool(getEnv("SKIP_TLS_VERIFY", "false"))
 	return &TokenConfig{
 		BaseURL:        getEnv("BASE_URL", "https://localhost:9443"),
 		ClientID:       getEnv("CLIENT_ID", ""),
 		ServiceAccount: getEnv("SERVICE_ACCOUNT", ""),
 		ServiceToken:   getEnv("SERVICE_TOKEN", ""),
-		SkipTLSVerify:  getBoolEnv("SKIP_TLS_VERIFY", false),
+		SkipTLSVerify:  skipTlsVerify,
 	}
 }
 
@@ -46,19 +48,6 @@ func getEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
-}
-
-// getBoolEnv retrieves a boolean environment variable
-func getBoolEnv(key string, defaultValue bool) bool {
-	value := os.Getenv(key)
-	switch strings.ToLower(value) {
-	case "true", "1", "yes":
-		return true
-	case "false", "0", "no":
-		return false
-	default:
-		return defaultValue
-	}
 }
 
 // getAccessToken retrieves an access token from the specified endpoint
