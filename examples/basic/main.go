@@ -45,5 +45,8 @@ func main() {
 		})
 	})
 
-	router.Run(":8080")
+	err = router.Run(":8080")
+	if err != nil {
+		log.Fatal("Could not start server")
+	}
 }
