@@ -35,7 +35,7 @@ jobs:
         run: git config --global --add safe.directory /__w/gauth/gauth
       - name: Build 
         run: |
-          make build
+          make build-examples
         shell: bash
 
   test:
