@@ -50,6 +50,13 @@ func getEnv(key, defaultValue string) string {
 	return value
 }
 
+func closeBody(response *http.Response) {
+	err := response.Body.Close()
+	if err != nil {
+		fmt.Print("body did nog close " + err.Error())
+	}
+}
+
 // getAccessToken retrieves an access token from the specified endpoint
 func getAccessToken(config *TokenConfig) (*TokenResponse, error) {
 	// Validate required configuration
@@ -85,7 +92,7 @@ func getAccessToken(config *TokenConfig) (*TokenResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer closeBody(resp)
 
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
